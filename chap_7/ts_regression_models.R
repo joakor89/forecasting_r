@@ -58,7 +58,107 @@ augment(fit_consMR) %>%
   ) +
   geom_abline(intercept = 0, slope = 1)
 
-# Goodness-of-Fit
+# ACF plot of Residuals
+# Histogram Residuals
+fit_consMR %>% gg_tsresiduals()
+
+augment(fit_consMR) %>%
+  features(.innov, ljung_box, lag = 10, daf = 5)
+
+
+# Residual Plots against Predictors
+us_change %>%
+  left_join(residuals(fit_consMR), by = "Quarter") %>%
+  pivot_longer(Income:Unemployment,
+               names_to = "regressor", values_to = "x") %>%
+  ggplot(aes(x = x, y = .resid)) +
+  geom_point() +
+  facet_wrap(. ~ regressor, scales = "free_x") +
+  labs(y = "Residuals", x = "")
+
+# Residuals Plots against Fitted Values
+augment(fit_consMR) %>%
+  ggplot(aes(x = .fitted, y = .resid)) +
+  geom_point() + labs(x = "Fitted", y = "Residuals")
+
+#Spurious Regression
+fit <- aus_airpassengers %>%
+  filter(Year <= 2011) %>%
+  left_join(guinea_rice, by = "Year") %>%
+  model(TSLM(Passengers ~ Production))
+
+report(fit)
+
+fit %>% gg_tsresiduals()
+
+# Seasonal Dummy Variables
+
+recent_production <- aus_production %>%
+  filter(year(Quarter) >= 1992)
+
+recent_production %>%
+  autoplot(Beer) +
+  labs(y = "Megalitres",
+       title = "Australian quarterly beer production")
+
+fit_beer <- recent_production %>%
+  model(TSLM(Beer ~ trend() + season()))
+
+report(fit_beer)
+
+augment(fit_beer) %>%
+  ggplot(aes(x = Quarter)) +
+  geom_line(aes(y = Beer, colour = "Data")) +
+  geom_line(aes(y = .fitted, colour = "Fitted")) +
+  scale_colour_manual(
+    values = c(Data = "black", Fitted = "#D55E00")
+  ) +
+  labs(y = "Megalitres",
+       title = "Australian quarterly beer production") +
+  guides(colour = guide_legend(title = "Series"))
+
+augment(fit_beer) %>%
+  ggplot(aes(x = "Beer", y = .fitted,
+         colour = factor(quarter(Quarter)))) +
+  geom_point() +
+  labs(y = "Fitted", x = "Actual values",
+       title = "Australian quarterly beer production") +
+  geom_abline(intercept = 0, slope = 1) +
+  guides(colour = guide_legend(title = "Quarter"))
+
+# Fourier Series
+fourier_beer <- recent_production %>%
+  model(TSLM(Beer ~ trend() + fourier(K = 2)))
+
+report(fourier_beer)
+
+# Selecting Predictors
+
+glance(fit_consMR) %>%
+  select(adj_r_squared, CV, AIC, AICc, BIC)
+
+# Forecasting with Regression
+# Ex-ante vs Ex-post Forecast: Australian quarterly beer production
+
+recent_production <- aus_production %>%
+  filter(year(Quarter) >= 1992)
+
+fit_beer <- recent_production %>%
+  model(TSLM(Beer ~ trend() + season()))
+
+fc_beer <- forecast(fit_beer)
+fc_beer %>%
+  autoplot(recent_production) +
+  labs(
+    title = "Forecast of beer production using regression",
+    y = "megalitres"
+  )
+
+# Scenario based forecasting
+
+
+
+
 
 
 
