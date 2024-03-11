@@ -88,6 +88,77 @@ fit %>%
        title = "Internet usage per minute")
 
 # Methods with Seasonality
+# Domestic overnight trips in Australia
+
+aus_holidays <- tourism %>%
+  filter(Purpose == "Holiday") %>%
+  summarise(Trips = sum(Trips)/1e3)
+
+fit <- aus_holidays %>%
+  model(
+    additive = ETS(Trips ~ error("A") + trend("A") +
+                     season("A")),
+    multiplicative = ETS(Trips ~ error("M") + trend("A") +
+                           season("M"))
+  )
+
+fc <- fit %>% forecast(h = "3 years")
+fc %>% 
+  autoplot(aus_holidays, level = NULL) +
+  labs(title = "Australian domestic torusim",
+       y = "Overnight trips (millions)") +
+  guides(colour = guide_legend(title = "Forecast"))
+
+# Holts-Winters damped method
+#Holts-Winters method with daily data
+
+sth_cross_ped <- pedestrian %>%
+  filter(Date >= "2016-07-01",
+         Sensor == "Southern Cross Station") %>%
+  index_by(Date) %>%
+  summarise(Count =sum(Count)/1000)
+
+sth_cross_ped %>%
+  filter(Date <= "2016-07-31") %>%
+  model(
+    hw = ETS(Count ~ error("M") + trend("Ad") + season("M"))
+  ) %>%
+  forecast(h = "2 weeks") %>%
+  autoplot(sth_cross_ped %>% filter(Date <= "2016-08-14")) +
+  labs(title = "Daily traffic: Souther Cross",
+       y="Pedestrians ('000)")
+
+# Estimation & Model Slection
+# Model Selection
+
+aus_holidays <- tourism %>%
+  filter(Purpose == "Holiday") %>%
+  summarise(Trips = sum(Trips)/1e3)
+
+fit <- aus_holidays %>%
+  model(ETS(Trips))
+
+report(fit)
+
+# states over time
+components(fit) %>%
+  autoplot() +
+  labs(title = "E.T.S(M,N,A) components")
+
+# Forecasting with ETS Models
+fit %>%
+  forecast(h = 8) %>%
+  autoplot(aus_holidays) +
+  labs(title = "Australian domestic tourism",
+       y = "Overnight trips (millions)")
+
+
+
+
+
+
+
+
 
 
 
