@@ -85,37 +85,80 @@ aus_total_retail %>%
 # Non seasonal ARIMA
 # Egyption exports
 
+global_economy %>%
+  filter(Code == "EGY") %>%
+  autoplot(Exports) + 
+  labs(y = "% of GDP", title = "Egyptian Exports")
+ 
+fit <- global_economy %>%
+  filter(Code == "EGY") %>%
+  model(ARIMA(Exports))
+
+report(fit)
+ 
+fit %>% forecast (h = 10) %>%
+  autoplot(global_economy) +
+  labs(y = "% of GDP", title = "Egyptian Exports")
+
+# ACF PACF
+
+global_economy %>%
+  filter(Code == "EGY") %>%
+  ACF(Exports) %>%
+  autoplot()
+ 
+global_economy %>%
+  filter(Code == "EGY") %>%
+  PACF(Exports) %>%
+  autoplot()
+ 
+fit2 <- global_economy %>%
+  filter(Code == "EGY") %>%
+  model(ARIMA(Exports ~ pdq(4, 0, 0)))
+
+report(fit2)
+ 
+# ARIMA Model in Fable
+# Central African Republic Exports
+
+global_economy %>%
+  filter(Code == "CAF") %>%
+  autoplot(Exports) +
+  labs(title="Central African Republic exports",
+       y="% of GDP")
+
+global_economy %>%
+  filter(Code == "CAF") %>%
+  gg_tsdisplay(difference(Exports), plot_type='partial')
+ 
+cat_fit <- global_economy %>%
+  filter(Code == "CAF") %>%
+  model(arima210 = ARIMA(Exports ~ pdq(2,1,0)),
+        arima013 = ARIMA(Exports ~ pdq(0,1,3)),
+        stepwise = ARIMA(Exports),
+        search = ARIMA(Exports, stepwise=FALSE))
+ 
+cat_fit %>% pivot_longer(!Country, names_to = "Model name",
+                         values_to = "Orders")
  
  
+cat_fit %>% pivot_longer(!Country, names_to = "Model name",
+                         values_to = "Orders")
  
+glance(cat_fit) %>% arrange(AICc) %>% select(.model:BIC)
  
+cat_fit %>%
+  select(search) %>%
+  gg_tsresiduals()
  
+augment(cat_fit) %>%
+  filter(.model =='search') %>%
+  features(.innov, ljung_box, lag = 10, dof =3)
  
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
+cat_fit %>%
+  forecast(h=5) %>%
+  filter(.model=='search') %>%
+  autoplot(global_economy)
  
  
  
